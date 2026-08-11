@@ -15,7 +15,7 @@ export class LifxPlatformAccessory {
     private readonly platform: LifxHomebridgePlatform,
     public readonly Accessory: PlatformAccessory,
     private readonly light,
-    settings,
+    private readonly settings,
   ) {
 
     this.lightId = light.id;
@@ -122,7 +122,7 @@ export class LifxPlatformAccessory {
   }
 
   async setKelvin(value: CharacteristicValue){
-    this.setValue('Color Temperature', this.bulb.setKelvin, this.bulb, value);
+    this.setValue('Color Temperature', this.bulb.setKelvin, this.bulb, this.clampColorTemperatureMiredForAdaptiveLighting(value));
     this.updateLightbulbCharacteristics();
   }
 
@@ -238,6 +238,43 @@ export class LifxPlatformAccessory {
 
   updateKelvin (){
     this.service.updateCharacteristic(this.platform.Characteristic.ColorTemperature, this.bulb.getColorTemperatur());
+  }
+
+  // True only while HomeKit is actively driving the colour temperature via Adaptive Lighting.
+  // Guarded so an absent controller or an older Homebridge can never throw.
+  private isAdaptiveLightingActive(): boolean {
+    try {
+      return this.adaptiveLightingController?.isAdaptiveLightingActive?.() === true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Clamps an Adaptive Lighting colour temperature request to the configured Kelvin range.
+   * HomeKit works in mireds, so the value is converted to Kelvin, clamped, and converted back.
+   * Manual colour temperature changes are never affected: when Adaptive Lighting is inactive
+   * the value is returned unmodified. The value is also returned unmodified if the configured
+   * range is missing or inverted, so a bad config degrades to stock behaviour rather than failing.
+   */
+  private clampColorTemperatureMiredForAdaptiveLighting(value: CharacteristicValue): CharacteristicValue {
+    if (!this.isAdaptiveLightingActive()) {
+      return value;
+    }
+
+    const mired = Number(value);
+    if (!Number.isFinite(mired) || mired <= 0) {
+      return value;
+    }
+
+    const minKelvin = Number(this.settings?.AdaptiveMinKelvin);
+    const maxKelvin = Number(this.settings?.AdaptiveMaxKelvin);
+    if (!Number.isFinite(minKelvin) || !Number.isFinite(maxKelvin) || minKelvin <= 0 || minKelvin >= maxKelvin) {
+      return value;
+    }
+
+    const kelvin = Math.min(Math.max(1000000 / mired, minKelvin), maxKelvin);
+    return 1000000 / kelvin;
   }
 
   // Checks homebridge version to see if Adaptive Lighting is supported

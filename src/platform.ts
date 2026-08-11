@@ -194,6 +194,8 @@ export class LifxHomebridgePlatform implements DynamicPlatformPlugin {
       Duration : this.config.duration,
       BrightnessDuration: this.config.brightnessDuration,
       ColorDuration: this.config.colorDuration,
+      AdaptiveMinKelvin: this.config.adaptiveMinKelvin ?? 3000,
+      AdaptiveMaxKelvin: this.config.adaptiveMaxKelvin ?? 6500,
     }));
   }
 

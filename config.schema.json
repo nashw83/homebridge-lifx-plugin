@@ -175,6 +175,22 @@
             }
           }
         }
+      },
+      "adaptiveMinKelvin": {
+        "title": "Warm Limit (Kelvin)",
+        "type": "number",
+        "default": 3000,
+        "minimum": 1500,
+        "maximum": 9000,
+        "description": "Lowest Kelvin value allowed during Adaptive Lighting."
+      },
+      "adaptiveMaxKelvin": {
+        "title": "Cool Limit (Kelvin)",
+        "type": "number",
+        "default": 6500,
+        "minimum": 1500,
+        "maximum": 9000,
+        "description": "Highest Kelvin value allowed during Adaptive Lighting."
       }
     }
   },
@@ -198,6 +214,21 @@
     {
       "key": "colorDuration",
       "type": "number"
+    },
+    {
+      "type": "section",
+      "title": "Adaptive Lighting",
+      "expandable": false,
+      "items": [
+        {
+          "key": "adaptiveMinKelvin",
+          "type": "number"
+        },
+        {
+          "key": "adaptiveMaxKelvin",
+          "type": "number"
+        }
+      ]
     },
     {
       "key": "bulbs",
