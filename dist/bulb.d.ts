@@ -1,0 +1,46 @@
+export default class Bulb {
+    private readonly light;
+    private readonly Settings;
+    private HardwareInfo?;
+    private States;
+    private FirmwareVersion;
+    constructor(light: any, Settings: any);
+    Init(callback: (reachable: boolean) => void, error: any): Promise<void>;
+    getName(): string;
+    getVersion(): string;
+    getSerialNumber(): any;
+    getProductId(): number | undefined;
+    getVendorName(): string | undefined;
+    getProductName(): string | undefined;
+    hasColors(): boolean;
+    hasKelvin(): boolean;
+    getMinKelvin(): number;
+    getMaxKelvin(): number;
+    getMinColorTemperatur(): number;
+    getMaxColorTemperatur(): number;
+    updateStates(callback: (reachable: boolean) => void): Promise<void>;
+    private static getProductInfo;
+    private setPower;
+    setFirmwareVersion(callback: any, error: any): Promise<void>;
+    setHardwareInformation(callback: any, error: any): Promise<void>;
+    getStates(callback: any, errorFallback: any): void;
+    getHardwareInformation(callback: any, errorFallback: any): void;
+    getFirmwareVersion(callback: any, errorFallback: any): void;
+    update(state: any, duration: any): void;
+    updateKelvin(state: any, duration: any): void;
+    setOn(value: any): Promise<void>;
+    setBrightness(value: any): Promise<void>;
+    setHue(value: any): Promise<void>;
+    setSaturation(value: any): Promise<void>;
+    setKelvin(value: number): Promise<void>;
+    getOn(): number;
+    getBrightness(): number;
+    getHue(): number;
+    getSaturation(): number;
+    getColorTemperatur(): number;
+    private assignUpgrades;
+    private isVersionHigherOrEqual;
+    private static convertHomeKitColorTemperatureToHomeKitColor;
+    private static convertKelvinMirek;
+}
+//# sourceMappingURL=bulb.d.ts.map
