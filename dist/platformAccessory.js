@@ -12,6 +12,8 @@ class LifxPlatformAccessory {
         this.light = light;
         this.settings = settings;
         this.isOnline = false; // offline until Init() succeeds
+        this.failureCount = 0; // consecutive poll failures
+        this.FAILURE_THRESHOLD = 3; // failures before going offline
         this.lightId = light.id;
         this.bulb = new bulb_1.default(light, settings);
         this.service = this.Accessory.getService(this.platform.Service.Lightbulb) || this.Accessory.addService(this.platform.Service.Lightbulb);
@@ -102,7 +104,6 @@ class LifxPlatformAccessory {
         this.updateLightbulbCharacteristics();
     }
     setValue(name, func, obj, value) {
-        this.resetWatcher();
         func.call(obj, value);
         this.platform.log.debug(`Set Characteristic ${name} -> `, value);
     }
@@ -131,6 +132,7 @@ class LifxPlatformAccessory {
             return;
         }
         this.isOnline = false;
+        this.failureCount = 0;
         clearInterval(this.watcher);
         this.watcher = undefined;
         this.markNotResponding();
@@ -148,9 +150,20 @@ class LifxPlatformAccessory {
         this.watcher = setInterval(() => {
             this.bulb.updateStates((reachable) => {
                 if (!reachable) {
-                    // Lampe antwortet nicht mehr – sofort offline schalten.
-                    // setOffline() stoppt auch diesen Watcher.
-                    this.setOffline();
+                    this.failureCount++;
+                    this.platform.log.warn(`${this.bulb.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
+                    if (this.failureCount >= this.FAILURE_THRESHOLD) {
+                        this.failureCount = 0;
+                        this.setOffline();
+                    }
+                    return;
+                }
+                // Successful poll – reset failure counter.
+                this.failureCount = 0;
+                // Self-recovery: bulb answered again after being offline.
+                // setOnline() will restart the watcher, so we return immediately.
+                if (!this.isOnline) {
+                    this.setOnline();
                     return;
                 }
                 this.updateLightbulbCharacteristics();

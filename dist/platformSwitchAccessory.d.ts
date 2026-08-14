@@ -11,6 +11,8 @@ export declare class LifxPlatformSwitchAccessory {
     private device;
     private readonly index;
     private isOnline;
+    private failureCount;
+    private readonly FAILURE_THRESHOLD;
     readonly lightId: string;
     constructor(platform: LifxHomebridgePlatform, Accessory: PlatformAccessory, light: any, relayIndex: any, name: any, settings: any);
     setHardwareCharacteristics(): void;

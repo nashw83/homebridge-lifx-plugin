@@ -13,6 +13,8 @@ class LifxPlatformSwitchAccessory {
         this.relayIndex = relayIndex;
         this.name = name;
         this.isOnline = false; // offline until Init() succeeds
+        this.failureCount = 0; // consecutive poll failures
+        this.FAILURE_THRESHOLD = 3; // failures before going offline
         this.device = new switch_1.default(light, name, settings);
         this.index = relayIndex;
         this.lightId = light.id;
@@ -63,7 +65,6 @@ class LifxPlatformSwitchAccessory {
         return this.device.getOn(this.index);
     }
     async setOn(value) {
-        this.resetWatcher();
         this.device.setOn(this.index, value);
         this.platform.log.debug('Set Characteristic On ->', [value, this.index]);
     }
@@ -80,6 +81,7 @@ class LifxPlatformSwitchAccessory {
             return;
         }
         this.isOnline = false;
+        this.failureCount = 0;
         clearInterval(this.watcher);
         this.watcher = undefined;
         this.markNotResponding();
@@ -97,7 +99,20 @@ class LifxPlatformSwitchAccessory {
         this.watcher = setInterval(() => {
             this.device.updateStates(this.index, (reachable) => {
                 if (!reachable) {
-                    this.setOffline();
+                    this.failureCount++;
+                    this.platform.log.warn(`${this.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
+                    if (this.failureCount >= this.FAILURE_THRESHOLD) {
+                        this.failureCount = 0;
+                        this.setOffline();
+                    }
+                    return;
+                }
+                // Successful poll – reset failure counter.
+                this.failureCount = 0;
+                // Self-recovery: device answered again after being offline.
+                // setOnline() will restart the watcher, so we return immediately.
+                if (!this.isOnline) {
+                    this.setOnline();
                     return;
                 }
                 this.updateLightbuldCharacteristics();

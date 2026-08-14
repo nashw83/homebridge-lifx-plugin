@@ -11,6 +11,8 @@ export class LifxPlatformSwitchAccessory {
   private device;
   private readonly index;
   private isOnline = false;  // offline until Init() succeeds
+  private failureCount = 0;  // consecutive poll failures
+  private readonly FAILURE_THRESHOLD = 3;  // failures before going offline
 
   public readonly lightId: string;
 
@@ -87,7 +89,6 @@ export class LifxPlatformSwitchAccessory {
   }
 
   async setOn(value: CharacteristicValue) {
-    this.resetWatcher();
     this.device.setOn(this.index, value);
     this.platform.log.debug('Set Characteristic On ->', [value, this.index]);
   }
@@ -109,6 +110,7 @@ export class LifxPlatformSwitchAccessory {
       return;
     }
     this.isOnline = false;
+    this.failureCount = 0;
     clearInterval(this.watcher);
     this.watcher = undefined;
     this.markNotResponding();
@@ -128,7 +130,20 @@ export class LifxPlatformSwitchAccessory {
     this.watcher = setInterval(() => {
       this.device.updateStates(this.index, (reachable) => {
         if (!reachable) {
-          this.setOffline();
+          this.failureCount++;
+          this.platform.log.warn(`${this.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
+          if (this.failureCount >= this.FAILURE_THRESHOLD) {
+            this.failureCount = 0;
+            this.setOffline();
+          }
+          return;
+        }
+        // Successful poll – reset failure counter.
+        this.failureCount = 0;
+        // Self-recovery: device answered again after being offline.
+        // setOnline() will restart the watcher, so we return immediately.
+        if (!this.isOnline) {
+          this.setOnline();
           return;
         }
         this.updateLightbuldCharacteristics();

@@ -10,6 +10,8 @@ export declare class LifxPlatformAccessory {
     private adaptiveLightingController;
     private bulb;
     private isOnline;
+    private failureCount;
+    private readonly FAILURE_THRESHOLD;
     readonly lightId: string;
     constructor(platform: LifxHomebridgePlatform, Accessory: PlatformAccessory, light: any, settings: any);
     setHardwareCharacteristics(): void;

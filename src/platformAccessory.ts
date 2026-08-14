@@ -8,6 +8,8 @@ export class LifxPlatformAccessory {
   private adaptiveLightingController;
   private bulb;
   private isOnline = false;  // offline until Init() succeeds
+  private failureCount = 0;  // consecutive poll failures
+  private readonly FAILURE_THRESHOLD = 3;  // failures before going offline
 
   public readonly lightId: string;
 
@@ -127,7 +129,6 @@ export class LifxPlatformAccessory {
   }
 
   setValue(name, func, obj, value) {
-    this.resetWatcher();
     func.call(obj, value);
     this.platform.log.debug(`Set Characteristic ${name} -> `, value);
   }
@@ -161,6 +162,7 @@ export class LifxPlatformAccessory {
       return;
     }
     this.isOnline = false;
+    this.failureCount = 0;
     clearInterval(this.watcher);
     this.watcher = undefined;
     this.markNotResponding();
@@ -180,9 +182,20 @@ export class LifxPlatformAccessory {
     this.watcher = setInterval(() => {
       this.bulb.updateStates((reachable) => {
         if (!reachable) {
-          // Lampe antwortet nicht mehr – sofort offline schalten.
-          // setOffline() stoppt auch diesen Watcher.
-          this.setOffline();
+          this.failureCount++;
+          this.platform.log.warn(`${this.bulb.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
+          if (this.failureCount >= this.FAILURE_THRESHOLD) {
+            this.failureCount = 0;
+            this.setOffline();
+          }
+          return;
+        }
+        // Successful poll – reset failure counter.
+        this.failureCount = 0;
+        // Self-recovery: bulb answered again after being offline.
+        // setOnline() will restart the watcher, so we return immediately.
+        if (!this.isOnline) {
+          this.setOnline();
           return;
         }
         this.updateLightbulbCharacteristics();

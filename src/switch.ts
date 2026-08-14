@@ -111,7 +111,7 @@ export default class Switch{
   getStates(index, callback, errorFallback){
     this.light.getRelayPower(index, (err, value) => {
       if (err) {
-        errorFallback(err);
+        return errorFallback(err);
       }
       callback(value);
     });
@@ -120,7 +120,7 @@ export default class Switch{
   getHardwareInformation(callback, errorFallback){
     this.light.getHardwareVersion((err, value) => {
       if (err) {
-        errorFallback(err);
+        return errorFallback(err);
       }
       callback(value);
     });
@@ -129,7 +129,7 @@ export default class Switch{
   getFirmwareVersion(callback, errorFallback){
     this.light.getFirmwareVersion((err, value) => {
       if (err) {
-        errorFallback(err);
+        return errorFallback(err);
       }
       callback(value);
     });
@@ -138,7 +138,7 @@ export default class Switch{
   getLabel(callback, errorFallback){
     this.light.getLabel((err, value) => {
       if (err) {
-        errorFallback(err);
+        return errorFallback(err);
       }
       callback(value);
     });
