@@ -111,8 +111,8 @@ export class LifxPlatformSwitchAccessory {
     }
     this.isOnline = false;
     this.failureCount = 0;
-    clearInterval(this.watcher);
-    this.watcher = undefined;
+    // Keep the watcher running while offline — see platformAccessory.setOffline().
+    // A successful poll is the only reliable way back online.
     this.markNotResponding();
     this.platform.log.info('Device offline:', this.getName());
   }
@@ -130,6 +130,10 @@ export class LifxPlatformSwitchAccessory {
     this.watcher = setInterval(() => {
       this.device.updateStates(this.index, (reachable) => {
         if (!reachable) {
+          // Already offline: keep polling quietly so a reply can bring it back.
+          if (!this.isOnline) {
+            return;
+          }
           this.failureCount++;
           this.platform.log.warn(`${this.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
           if (this.failureCount >= this.FAILURE_THRESHOLD) {

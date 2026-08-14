@@ -163,8 +163,11 @@ export class LifxPlatformAccessory {
     }
     this.isOnline = false;
     this.failureCount = 0;
-    clearInterval(this.watcher);
-    this.watcher = undefined;
+    // Keep the watcher running while offline. Stopping it removes the only
+    // path back: a successful poll is what calls setOnline(), and the
+    // light-online event cannot help here because the LAN client only emits it
+    // after it has itself marked the device offline — which never happens for a
+    // device that answers discovery but is slow to answer a status request.
     this.markNotResponding();
     this.platform.log.info('Device offline:', this.bulb.getName());
   }
@@ -182,6 +185,11 @@ export class LifxPlatformAccessory {
     this.watcher = setInterval(() => {
       this.bulb.updateStates((reachable) => {
         if (!reachable) {
+          // Already offline: keep polling quietly so a reply can bring it back,
+          // without counting or logging on every attempt.
+          if (!this.isOnline) {
+            return;
+          }
           this.failureCount++;
           this.platform.log.warn(`${this.bulb.getName()}: poll failed (${this.failureCount}/${this.FAILURE_THRESHOLD})`);
           if (this.failureCount >= this.FAILURE_THRESHOLD) {
